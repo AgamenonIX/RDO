@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<meta name="theme-color" content="#0f5132">
+<title>RDO - Relatório Diário de Obra</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="icon" href="./logo.png">
+<link rel="apple-touch-icon" href="./logo.png">
+<style>
+  :root{
+    --verde:#0f5132;
+    --verde-claro:#1a7a4c;
+    --verde-acao:#22c55e;
+    --verde-acao-escuro:#16a34a;
+    --vermelho:#dc2626;
+    --amarelo:#f59e0b;
+    --cinza-bg:#f1f5f9;
+    --cinza-borda:#cbd5e1;
+    --texto:#1e293b;
+    --texto-claro:#64748b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+    background:var(--cinza-bg);
+    color:var(--texto);
+    padding-bottom:40px;
+  }
+  header{
+    background:var(--verde);color:#fff;padding:18px 16px;
+    position:sticky;top:0;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.15);
+  }
+  header h1{margin:0;font-size:19px;font-weight:600;}
+  header p{margin:4px 0 0;font-size:13px;opacity:.85;}
+
+  #status-bar{
+    display:flex;align-items:center;gap:8px;padding:9px 16px;
+    font-size:12.5px;background:#e2e8f0;color:var(--texto-claro);
+  }
+  .dot{width:8px;height:8px;border-radius:50%;display:inline-block;background:var(--texto-claro);}
+  #status-bar.online .dot{background:var(--verde-acao);}
+  #status-bar.offline .dot{background:var(--amarelo);}
+
+  main{max-width:640px;margin:0 auto;padding:16px;}
+
+  .card{
+    background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;
+    box-shadow:0 1px 3px rgba(0,0,0,.08);
+  }
+
+  label{display:block;font-weight:600;font-size:14.5px;margin-bottom:6px;}
+  label .req{color:var(--vermelho);}
+  .campo{margin-bottom:16px;}
+  .campo:last-child{margin-bottom:0;}
+
+  select,input[type=text],input[type=date],input[type=time],textarea{
+    width:100%;padding:12px;font-size:16px;border:1.5px solid var(--cinza-borda);
+    border-radius:8px;background:#fff;color:var(--texto);font-family:inherit;
+  }
+  select:focus,input:focus,textarea:focus{outline:2px solid var(--verde-claro);border-color:var(--verde-claro);}
+  textarea{resize:vertical;min-height:70px;}
+
+  #btn-foto{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:16px;background:var(--verde-claro);color:#fff;
+    border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;
+  }
+  #foto-input{display:none;}
+  #miniaturas{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+  .thumb{position:relative;width:74px;height:74px;border-radius:8px;overflow:hidden;border:1.5px solid var(--cinza-borda);}
+  .thumb img{width:100%;height:100%;object-fit:cover;display:block;}
+  .thumb button{
+    position:absolute;top:2px;right:2px;background:rgba(220,38,38,.9);color:#fff;border:none;
+    width:20px;height:20px;border-radius:50%;font-size:13px;line-height:1;cursor:pointer;
+  }
+
+  #btn-enviar{
+    width:100%;padding:18px;background:var(--verde-acao);color:#fff;
+    border:none;border-radius:10px;font-size:17px;font-weight:700;cursor:pointer;margin-top:4px;
+  }
+  #btn-enviar:active{background:var(--verde-acao-escuro);}
+
+  #msg{margin-top:10px;font-size:14px;text-align:center;font-weight:600;min-height:18px;}
+  #msg.ok{color:var(--verde-acao-escuro);}
+  #msg.erro{color:var(--vermelho);}
+
+  /* ---- Lista dinâmica de horários ---- */
+  .linha-horario{
+    margin-bottom:8px;background:#f8fafc;border:1px solid var(--cinza-borda);
+    border-radius:8px;padding:10px;
+  }
+  .linha-horario-topo{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;}
+  .campo-mini{display:flex;flex-direction:column;}
+  .campo-mini-hora{width:130px;flex-shrink:0;}
+  .rotulo-mini{
+    font-size:10px;font-weight:700;color:var(--texto-claro);
+    text-transform:uppercase;letter-spacing:.3px;margin-bottom:3px;
+  }
+  .linha-horario input[type=time]{width:100%;padding:10px 6px;font-size:14px;box-sizing:border-box;}
+  .linha-horario input[type=text]{width:100%;padding:10px;font-size:14px;box-sizing:border-box;}
+  .btn-remover-horario{
+    flex-shrink:0;background:#fff;color:var(--vermelho);border:1.5px solid #fecaca;
+    border-radius:6px;width:40px;height:40px;font-size:16px;cursor:pointer;
+  }
+  #btn-add-horario{
+    width:100%;padding:11px;background:#fff;color:var(--verde-claro);
+    border:1.5px dashed var(--verde-claro);border-radius:8px;font-weight:600;
+    font-size:13.5px;cursor:pointer;margin-top:4px;
+  }
+
+  .pendentes-header{margin-bottom:6px;}
+  .pendentes-header h2{font-size:15px;margin:0;}
+  .pendentes-header p{font-size:12.5px;color:var(--texto-claro);margin:3px 0 12px;}
+  .item-pendente{padding:12px 0;border-bottom:1px solid #eef2f6;}
+  .item-pendente:last-child{border-bottom:none;}
+  .item-topo{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+  .item-titulo{font-size:13.5px;font-weight:600;}
+  .item-sub{font-size:12px;color:var(--texto-claro);font-weight:400;}
+  .badge{padding:3px 9px;border-radius:20px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+  .badge.pendente{background:#fef3c7;color:#92400e;}
+  .badge.enviado{background:#dcfce7;color:#166534;}
+  .item-acoes{display:flex;gap:8px;}
+  .btn-mini{flex:1;padding:9px;border-radius:7px;border:none;font-size:13px;font-weight:600;cursor:pointer;}
+  .btn-compartilhar{background:#25d366;color:#fff;}
+  .btn-excluir{background:#fff;color:var(--vermelho);border:1.5px solid #fecaca !important;}
+  #vazio{color:var(--texto-claro);font-size:13.5px;text-align:center;padding:8px 0;}
+  .aviso{
+    background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 12px;
+    font-size:12.5px;color:#1e40af;margin-bottom:14px;line-height:1.5;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>RDO — Relatório Diário de Obra</h1>
+  <p>Omega Service</p>
+</header>
+
+<div id="status-bar" class="offline">
+  <span class="dot"></span>
+  <span id="status-texto">Verificando conexão...</span>
+</div>
+
+<main>
+
+  <form id="form-rdo" class="card" autocomplete="off">
+
+    <div class="campo">
+      <label>Atividade</label>
+      <input type="text" name="atividade" placeholder="Ex: Aplicação de acabamento nas torres da TR 09">
+    </div>
+
+    <div class="campo">
+      <label>OM</label>
+      <input type="text" name="om" placeholder="Número da OM (se houver)">
+    </div>
+
+    <div class="campo">
+      <label>NOTA</label>
+      <input type="text" name="nota" placeholder="Número da NOTA (se houver)">
+    </div>
+
+    <div class="campo">
+      <label>Data</label>
+      <input type="date" name="data">
+    </div>
+
+    <div class="campo">
+      <label>Descrição das Atividades</label>
+      <textarea name="descricao" placeholder="Descreva as atividades do dia..."></textarea>
+    </div>
+
+    <div class="campo">
+      <label>Linha do Tempo (horários)</label>
+      <div id="lista-horarios"></div>
+      <button type="button" id="btn-add-horario">+ Adicionar horário</button>
+    </div>
+
+    <div class="campo">
+      <label>OBS</label>
+      <textarea name="obs" placeholder="Observações..."></textarea>
+    </div>
+
+    <div class="campo">
+      <label>Impacto</label>
+      <textarea name="impacto" placeholder="Algum impacto identificado..."></textarea>
+    </div>
+
+    <div class="campo">
+      <label>Fotos <span class="req">*</span> <span style="font-weight:400;color:var(--texto-claro);">(pelo menos 1)</span></label>
+      <button type="button" id="btn-foto">📷 Tirar / Escolher Fotos</button>
+      <input type="file" id="foto-input" accept="image/*" multiple>
+      <div id="miniaturas"></div>
+    </div>
+
+    <button type="submit" id="btn-enviar">Salvar RDO no Aparelho</button>
+    <div id="msg"></div>
+  </form>
+
+  <div class="card">
+    <div class="pendentes-header">
+      <h2>RDOs salvos neste celular</h2>
+      <p>Toque em "Enviar WhatsApp" para mandar o relatório e as fotos.</p>
+    </div>
+    <div id="lista-pendentes"><div id="vazio">Nenhum registro salvo ainda.</div></div>
+  </div>
+
+  <div class="aviso">
+    ℹ️ O envio precisa de um toque seu a cada RDO — nenhum navegador permite que um site mande mensagens no WhatsApp sozinho. Isso é uma proteção de segurança do próprio celular.
+  </div>
+
+</main>
+
+<script>
+/* ---------- Registrar Service Worker (permite abrir o app offline) ---------- */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.error('SW falhou:', err));
+  });
+}
+
+/* ---------- IndexedDB: armazenamento local dos RDOs ---------- */
+const DB_NAME = 'rdoDB';
+const STORE = 'submissoes';
+let dbPromise = null;
+
+function abrirDB() {
+  if (dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, 1);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(STORE)) {
+        db.createObjectStore(STORE, { keyPath: 'localId' });
+      }
+    };
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return dbPromise;
+}
+
+async function salvarSubmissao(item) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put(item);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+async function listarSubmissoes() {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = () => resolve(req.result.sort((a,b) => b.createdAt - a.createdAt));
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function apagarSubmissao(localId) {
+  const db = await abrirDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).delete(localId);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+/* ---------- Lista dinâmica de horários ---------- */
+const listaHorarios = document.getElementById('lista-horarios');
+let contadorHorario = 0;
+
+function adicionarLinhaHorario(horaValor = '', textoValor = '') {
+  contadorHorario++;
+  const id = 'horario_' + contadorHorario;
+  const div = document.createElement('div');
+  div.className = 'linha-horario';
+  div.dataset.id = id;
+  div.innerHTML = `
+    <div class="linha-horario-topo">
+      <div class="campo-mini campo-mini-hora">
+        <span class="rotulo-mini">Hora</span>
+        <input type="time" class="input-hora" value="${horaValor}">
+      </div>
+      <button type="button" class="btn-remover-horario">×</button>
+    </div>
+    <div class="campo-mini">
+      <span class="rotulo-mini">Atividade</span>
+      <input type="text" class="input-texto-horario" placeholder="Ex: chegada no condomínio..." value="${textoValor}">
+    </div>
+  `;
+  div.querySelector('.btn-remover-horario').addEventListener('click', () => div.remove());
+  listaHorarios.appendChild(div);
+}
+
+document.getElementById('btn-add-horario').addEventListener('click', () => adicionarLinhaHorario());
+// Começa com 1 linha em branco, pra facilitar
+adicionarLinhaHorario();
+
+function coletarHorarios() {
+  const linhas = listaHorarios.querySelectorAll('.linha-horario');
+  const resultado = [];
+  linhas.forEach(linha => {
+    const hora = linha.querySelector('.input-hora').value;
+    const texto = linha.querySelector('.input-texto-horario').value.trim();
+    if (hora || texto) resultado.push({ hora, texto });
+  });
+  return resultado;
+}
+
+function limparHorarios() {
+  listaHorarios.innerHTML = '';
+  adicionarLinhaHorario();
+}
+
+/* ---------- Compressão de foto ---------- */
+function comprimirImagem(file, maxLado = 1600, qualidade = 0.72) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => { img.src = e.target.result; };
+    reader.onerror = reject;
+    img.onload = () => {
+      let { width, height } = img;
+      if (width > height && width > maxLado) { height = Math.round(height * maxLado / width); width = maxLado; }
+      else if (height > maxLado) { width = Math.round(width * maxLado / height); height = maxLado; }
+      const canvas = document.createElement('canvas');
+      canvas.width = width; canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', qualidade));
+    };
+    img.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+let fotosSelecionadas = [];
+
+document.getElementById('btn-foto').addEventListener('click', () => {
+  document.getElementById('foto-input').click();
+});
+
+document.getElementById('foto-input').addEventListener('change', async (e) => {
+  const arquivos = Array.from(e.target.files);
+  for (const file of arquivos) {
+    try {
+      const base64 = await comprimirImagem(file);
+      fotosSelecionadas.push({ nome: file.name, base64 });
+    } catch (err) {
+      console.error('Erro ao processar foto:', err);
+    }
+  }
+  renderMiniaturas();
+  e.target.value = '';
+});
+
+function renderMiniaturas() {
+  const cont = document.getElementById('miniaturas');
+  cont.innerHTML = '';
+  fotosSelecionadas.forEach((f, i) => {
+    const div = document.createElement('div');
+    div.className = 'thumb';
+    div.innerHTML = `<img src="${f.base64}"><button type="button" data-i="${i}">×</button>`;
+    cont.appendChild(div);
+  });
+  cont.querySelectorAll('button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      fotosSelecionadas.splice(Number(btn.dataset.i), 1);
+      renderMiniaturas();
+    });
+  });
+}
+
+/* ---------- Preencher data padrão ---------- */
+function preencherDataPadrao() {
+  const form = document.getElementById('form-rdo');
+  form.data.value = new Date().toISOString().slice(0,10);
+}
+preencherDataPadrao();
+
+/* ---------- Salvar formulário localmente ---------- */
+document.getElementById('form-rdo').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const form = e.target;
+  const msg = document.getElementById('msg');
+
+  if (fotosSelecionadas.length === 0) {
+    msg.textContent = 'Adicione pelo menos 1 foto antes de salvar.';
+    msg.className = 'erro';
+    return;
+  }
+
+  const dados = Object.fromEntries(new FormData(form).entries());
+  dados.horarios = coletarHorarios();
+
+  const item = {
+    localId: 'rdo_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    createdAt: Date.now(),
+    status: 'pendente',
+    dados,
+    fotos: fotosSelecionadas
+  };
+
+  await salvarSubmissao(item);
+
+  form.reset();
+  fotosSelecionadas = [];
+  renderMiniaturas();
+  limparHorarios();
+  preencherDataPadrao();
+
+  msg.textContent = '✅ RDO salvo no aparelho.';
+  msg.className = 'ok';
+  setTimeout(() => { msg.textContent = ''; }, 5000);
+
+  await atualizarListaPendentes();
+});
+
+/* ---------- Montar o texto do relatório (modelo igual ao usado no WhatsApp) ---------- */
+function formatarDataBR(dataISO) {
+  if (!dataISO) return '-';
+  const [ano, mes, dia] = dataISO.split('-');
+  return `${dia}/${mes}/${ano}`;
+}
+
+function montarTextoResumo(d) {
+  const linhasHorario = (d.horarios || [])
+    .map(h => `✅ ${h.hora ? h.hora + ' ' : ''}${h.texto}`.trim())
+    .filter(l => l !== '✅')
+    .join('\n\n');
+
+  return `📄 RELATÓRIO DE ATIVIDADES REALIZADAS
+
+📗 Atividade
+${d.atividade || '-'}
+
+📄 OM
+${d.om || '-'}
+
+📄 NOTA
+${d.nota || '-'}
+
+📅 ${formatarDataBR(d.data)}
+
+📍 DESCRIÇÃO DAS ATIVIDADES
+${d.descricao || '-'}
+
+${linhasHorario}
+
+OBS
+${d.obs || '-'}
+
+Impacto
+${d.impacto || '-'}`;
+}
+
+/* ---------- Montar uma colagem (grade) com todas as fotos ---------- */
+function carregarImagem(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+function desenharCover(ctx, img, x, y, w, h) {
+  const escala = Math.max(w / img.width, h / img.height);
+  const sw = w / escala, sh = h / escala;
+  const sx = (img.width - sw) / 2, sy = (img.height - sh) / 2;
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
+function desenharCoverArredondado(ctx, img, x, y, w, h, raio) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.moveTo(x + raio, y);
+  ctx.arcTo(x + w, y, x + w, y + h, raio);
+  ctx.arcTo(x + w, y + h, x, y + h, raio);
+  ctx.arcTo(x, y + h, x, y, raio);
+  ctx.arcTo(x, y, x + w, y, raio);
+  ctx.closePath();
+  ctx.clip();
+  desenharCover(ctx, img, x, y, w, h);
+  ctx.restore();
+}
+
+async function montarColagem(fotos) {
+  const n = fotos.length;
+  const colunas = Math.ceil(Math.sqrt(n));
+  const linhas = Math.ceil(n / colunas);
+  const celula = 640;
+  const gap = 6;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = colunas * celula + (colunas + 1) * gap;
+  canvas.height = linhas * celula + (linhas + 1) * gap;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const imagens = await Promise.all(fotos.map(f => carregarImagem(f.base64)));
+  const raioCanto = celula * 0.06;
+  imagens.forEach((img, i) => {
+    const col = i % colunas;
+    const lin = Math.floor(i / colunas);
+    const x = gap + col * (celula + gap);
+    const y = gap + lin * (celula + gap);
+    desenharCoverArredondado(ctx, img, x, y, celula, celula, raioCanto);
+  });
+
+  return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82));
+}
+
+/* ---------- Compartilhar um RDO (menu nativo do celular) ---------- */
+async function compartilharItem(localId) {
+  const itens = await listarSubmissoes();
+  const item = itens.find(i => i.localId === localId);
+  if (!item) return;
+
+  const texto = montarTextoResumo(item.dados);
+  const arquivos = [];
+
+  try {
+    if (item.fotos.length > 0) {
+      const blobColagem = await montarColagem(item.fotos);
+      arquivos.push(new File([blobColagem], `fotos_${item.localId}.jpg`, { type: 'image/jpeg' }));
+    }
+  } catch (err) {
+    alert('Erro ao preparar as fotos: ' + err.message);
+    return;
+  }
+
+  const podeCompartilharArquivos = arquivos.length > 0 && navigator.canShare && navigator.canShare({ files: arquivos });
+
+  if (navigator.share && (podeCompartilharArquivos || arquivos.length === 0)) {
+    try {
+      const payload = { title: 'RDO', text: texto };
+      if (podeCompartilharArquivos) payload.files = arquivos;
+      await navigator.share(payload);
+      item.status = 'enviado';
+      await salvarSubmissao(item);
+      await atualizarListaPendentes();
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        alert('Não foi possível compartilhar: ' + err.message);
+      }
+    }
+  } else {
+    baixarArquivosManualmente(arquivos, texto);
+  }
+}
+
+function baixarArquivosManualmente(arquivos, texto) {
+  prompt('Seu navegador não permite enviar direto pro WhatsApp. Copie o texto abaixo (Ctrl+C) e cole na conversa; as fotos serão baixadas separadamente:', texto);
+  arquivos.forEach((arquivo, i) => {
+    setTimeout(() => {
+      const url = URL.createObjectURL(arquivo);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = arquivo.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, i * 400);
+  });
+}
+
+async function excluirItem(localId) {
+  if (!confirm('Excluir este RDO do aparelho? Essa ação não pode ser desfeita.')) return;
+  await apagarSubmissao(localId);
+  await atualizarListaPendentes();
+}
+
+/* ---------- Lista de RDOs salvos na tela ---------- */
+async function atualizarListaPendentes() {
+  const itens = await listarSubmissoes();
+  const cont = document.getElementById('lista-pendentes');
+  if (itens.length === 0) {
+    cont.innerHTML = '<div id="vazio">Nenhum registro salvo ainda.</div>';
+    return;
+  }
+  cont.innerHTML = itens.map(i => {
+    const dt = new Date(i.createdAt);
+    const dataFmt = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+    const badgeClasse = i.status === 'enviado' ? 'enviado' : 'pendente';
+    const badgeTexto = i.status === 'enviado' ? '✅ Enviado' : '⏳ Pendente';
+    return `<div class="item-pendente">
+      <div class="item-topo">
+        <div class="item-titulo">${i.dados.atividade || 'Sem atividade'}<div class="item-sub">${dataFmt} · ${i.fotos.length} foto(s)</div></div>
+        <span class="badge ${badgeClasse}">${badgeTexto}</span>
+      </div>
+      <div class="item-acoes">
+        <button class="btn-mini btn-compartilhar" onclick="compartilharItem('${i.localId}')">📤 Enviar WhatsApp</button>
+        <button class="btn-mini btn-excluir" onclick="excluirItem('${i.localId}')">Excluir</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Barra de status online/offline ---------- */
+function atualizarStatusBar() {
+  const bar = document.getElementById('status-bar');
+  const texto = document.getElementById('status-texto');
+  if (navigator.onLine) {
+    bar.className = 'online';
+    texto.textContent = 'Com internet agora';
+  } else {
+    bar.className = 'offline';
+    texto.textContent = 'Sem internet — o app funciona normalmente offline';
+  }
+}
+window.addEventListener('online', atualizarStatusBar);
+window.addEventListener('offline', atualizarStatusBar);
+
+/* ---------- Inicialização ---------- */
+atualizarStatusBar();
+atualizarListaPendentes();
+</script>
+
+</body>
+</html>
