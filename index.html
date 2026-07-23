@@ -414,18 +414,52 @@ function montarTextoResumo(d) {
   const linhasHorario = (d.horarios || [])
     .map(h => `✅ ${h.hora ? h.hora + ' ' : ''}${h.texto}`.trim())
     .filter(l => l !== '✅')
-    .join('\n');
+    .join('\n\n');
 
   return `📋 RELATÓRIO DE ATIVIDADES REALIZADAS
 
-🟩 Atividade
+*📋 RELATÓRIO DE ATIVIDADES REALIZADAS*
+
+🔰 *Atividade*
+Aplicação de  acabamento nas torres da TR 09 
+
+*📋OM* 
+*📋NOTA*
+
+📅 21/07/2026
+
+📍 *DESCRIÇÃO DAS ATIVIDADES*
+continuação com aplicação de tinta de acabamento no guarda corpo TR2011KS-09 
+
+✅ 07:31 chegada no condomínio e batida de ponto
+
+✅08:01 saída do condomínio para frente de trabalho TR 09
+
+✅08:15 chegada na frente do trabalho
+
+✅08:16 as 08:42 DSS e preenchimento de documentação obrigatório 
+
+✅09:25 início das atividades de aplicação de acabamento
+
+✅12:30 as 13:30 almoço e retorno
+
+✅16:42 chegada no condomínio
+
+✅17:30 batida de ponto e saída
+
+ *OBS*
+a equipe que tava fazendo o tratamento st2 e aplicação de tinta de acabamento no guarda corpo TR2011KS-09 
+saiu  por almoço 12:30 apos o almoço equipes foi fazer treinamento de ROF LDL das 14:00 as 16:00
+
+
+
+
+*Impacto*
+não ouvi impacto no momento Atividade
 ${d.atividade || '-'}
 
-📋 OM
-${d.om || '-'}
-
-📋 NOTA
-${d.nota || '-'}
+`📋 OM ${d.om || '-'}
+`📋 NOTA ${d.nota || '-'}
 
 📅 ${d.data || '-'}
 
