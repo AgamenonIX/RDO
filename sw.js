@@ -1,5 +1,5 @@
 // Service Worker do app de RDO
-const CACHE_NAME = 'rdo-app-v8'; // aumente o número sempre que atualizar o app
+const CACHE_NAME = 'rdo-app-v10'; // aumente o número sempre que atualizar o app
 const ARQUIVOS_PARA_CACHE = [
   './',
   './index.html',
